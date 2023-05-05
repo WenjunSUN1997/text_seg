@@ -13,8 +13,10 @@ class Datasetor(Dataset):
                  step_len,
                  max_token_num,
                  bbox_flag,
-                 sentence_bert_flag):
+                 sentence_bert_flag,
+                 device):
         self.csv = csv
+        self.device = device
         self.bbox_flag = bbox_flag
         self.sentence_bert_flag = sentence_bert_flag
         self.max_token_num = max_token_num
@@ -91,12 +93,14 @@ class Datasetor(Dataset):
                 else:
                     label_cos_sim_matrix[index_1][index_2] = 0
 
-        return label_seg, label_cos_sim_list, label_cos_sim_matrix
+        return torch.tensor(label_seg).to(self.device), \
+               torch.tensor(label_cos_sim_list).to(self.device), \
+               torch.tensor(label_cos_sim_matrix).to(self.device)
 
     def get_bbox(self, bbox_list):
         bbox = [[v[0], v[2]] for v in bbox_list]
         for bbox_sub in bbox:
-
+            pass
 
         return bbox
 
@@ -107,7 +111,7 @@ class Datasetor(Dataset):
         label_seg, label_cos_sim_list, label_cos_sim_matrix = self.get_labels(label_group_list)
         if self.sentence_bert_flag:
             sentence_bert_vec = self.sentence_bert.encode(sentence_list)
-            sentence_bert_vec = torch.tensor(sentence_bert_vec)
+            sentence_bert_vec = torch.tensor(sentence_bert_vec).to(self.device)
         else:
             sentence_bert_vec = -100
 
@@ -117,10 +121,14 @@ class Datasetor(Dataset):
         else:
             bbox = -100
 
-
-        return sentence_list
-
-
+        result = {'input_ids': tokens['input_ids'].to(self.device),
+                  'attention_mask': tokens['attention_mask'].to(self.device),
+                  'label_seg': label_seg,
+                  'label_cos_sim_list': label_cos_sim_list,
+                  'label_cos_sim_matrix': label_cos_sim_matrix,
+                  'sentence_bert_vec': sentence_bert_vec,
+                  }
+        return result
 
 if __name__ == "__main__":
     csv = pd.read_csv('../data/train_fr.csv')
@@ -131,7 +139,8 @@ if __name__ == "__main__":
                     step_len=2,
                     max_token_num=512,
                     bbox_flag=True,
-                    sentence_bert_flag=True)
+                    sentence_bert_flag=True,
+                    device='cuda:0')
     print(obj[0])
 
 
