@@ -14,7 +14,7 @@ def get_dataloader(dataset_name,
                    device,
                    goal,
                    batch_size):
-    dataset_name_dict = {'choi':{'train': 'data/choi.csv',
+    dataset_name_dict = {'choi':{'train': 'data/train_choi.csv',
                                  'dev': 'data/dev_choi.csv',
                                  'val': 'data/val_choi.csv'},
                          '50': {'train': 'data/train_wiki50.csv',
