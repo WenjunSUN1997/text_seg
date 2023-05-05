@@ -1,0 +1,3 @@
+
+class DoubleBert():
+    pass

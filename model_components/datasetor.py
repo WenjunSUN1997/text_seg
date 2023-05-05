@@ -75,9 +75,9 @@ class Datasetor(Dataset):
         label_seg = []
         for index in range(len(label_group_list)-1):
             if label_group_list[index] == label_group_list[index+1]:
-                label_seg.append(1)
-            else:
                 label_seg.append(0)
+            else:
+                label_seg.append(1)
 
         for index_1 in range(len(label_group_list)):
             for index_2 in range(index_1, len(label_group_list)):

@@ -1,0 +1,3 @@
+
+class CrossSeg():
+    pass

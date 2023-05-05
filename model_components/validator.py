@@ -11,13 +11,36 @@ def validate(seg_model, dataloader, loss_func):
     loss_all = []
     prediction_all = []
     label_all = []
+    labels_to_cal = [1]
     for data in tqdm(dataloader):
         output = seg_model(data)
         prediction_all += output['seg_result']
         label_all += data['label_seg'].H.cpu().tolist()[0]
 
-    pk = nltk.pk(ref=label_all, hyp=prediction_all, boundary=1)
-    window_diff = nltk.windowdiff(seg1=label_all, seg2=prediction_all, boundary=1)
+    label_all_nltk = convert_seg_to_nltk(label_all)
+    prediction_all_nltk = convert_seg_to_nltk(prediction_all)
+    pk = nltk.pk(ref=label_all_nltk, hyp=prediction_all_nltk)
+    p = precision_score(y_true=label_all, y_pred=prediction_all,
+                        average='micro', labels=labels_to_cal)
+    r = recall_score(y_true=label_all, y_pred=prediction_all,
+                        average='micro', labels=labels_to_cal)
+
+
+    print('pk: ', pk)
+    print('p: ', p)
+    print('r: ', r)
     return_value = {'pk': pk,
-                    'window_diff': window_diff,}
+                    'p': p,
+                    'r': r,
+                    'loss': 0}
     return return_value
+
+def convert_seg_to_nltk(seg_result):
+    nltk_format = ''
+    for seg in seg_result:
+        if seg == 0:
+            nltk_format += '0'
+        else:
+            nltk_format += '1'
+
+    return nltk_format

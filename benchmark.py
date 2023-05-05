@@ -1,5 +1,6 @@
 from model_components.dataloader import get_dataloader
-from baseline import bert_cos_sim, double_bert, cross_seg, llama_cos_sim, two_level_trans
+from baseline import bert_cos_sim, double_bert, cross_seg,\
+    llama_cos_sim, two_level_trans, sentence_bert
 from transformers import BertModel, LlamaModel
 import argparse
 import torch
@@ -8,6 +9,8 @@ from tqdm import tqdm
 import os
 from model_components.validator import validate
 from model_components.loss_func import FocalLoss, CrossEntroy
+
+torch.manual_seed(3407)
 
 def train(dataset_name,
           model_name,
@@ -26,8 +29,9 @@ def train(dataset_name,
           gamma,
           loss_func_name,
           cos_sim_threhold,
-          semantic_dim):
-    best = [0, 0]
+          semantic_dim,
+          dev_step):
+    best = [0, 0, 0]
     dataloader_train = get_dataloader(dataset_name=dataset_name,
                                       model_name=model_name,
                                       sentence_bert_name=sentence_bert_name,
@@ -66,25 +70,52 @@ def train(dataset_name,
     loss_func_dict = {'cross': CrossEntroy(weight=weight_cross),
                      'focal': FocalLoss(alpha=alpha, gamma=gamma)}
     loss_func = loss_func_dict[loss_func_name]
-    seg_model_dict = {'bert_cos_sim':1}
     if 'llama' not in model_name:
         backbone_model = BertModel.from_pretrained(model_name).to(device)
     else:
         backbone_model = LlamaModel.from_pretrained(model_name).to(device)
 
-    seg_model = bert_cos_sim.BertCosSim(bert_model=backbone_model,
-                                        threshold=cos_sim_threhold).to(device)
+    seg_model_dict = {'bert_cos_sim': bert_cos_sim.BertCosSim(bert_model=backbone_model,
+                                        threshold=cos_sim_threhold).to(device),
+                      'double_bert': double_bert.DoubleBert(),
+                      'llama_cos_sim': llama_cos_sim.LlamaCosSim(),
+                      'sentence_bert': sentence_bert.SentenceBertCosSim(),
+                      'two_levle': two_level_trans.TwoLevelTrans(),
+                      'cross_seg': cross_seg.CrossSeg(),
+                      }
+    seg_model = seg_model_dict[seg_model_name]
     for epoch_num in range(epoch):
         for step, data in tqdm(enumerate(dataloader_train), total=len(dataloader_train)):
             seg_model(data)
-            if seg_model_name in ['bert_cos_sim', 'llama_cos_sim', 'double_bert']:
+            if seg_model_name in ['bert_cos_sim', 'llama_cos_sim',
+                                  'double_bert', 'sentence_bert']:
                 break
-            pass
+            else:
+                pass
 
-        validate()
+            if (step+1) % dev_step == 0:
+                dev_output = validate(seg_model=seg_model,
+                         dataloader=dataloader_dev,
+                         loss_func=loss_func)
 
-
-
+        val_output = validate(seg_model=seg_model,
+                              dataloader=dataloader_val,
+                              loss_func=loss_func)
+        pk = val_output['pk']
+        p = val_output['p']
+        r = val_output['r']
+        print(epoch_num)
+        print('pk: ', pk)
+        print('p: ', p)
+        print('r: ', r)
+        if pk >= best[0]:
+            best[0] = pk
+            best[1] = p
+            best[2] = r
+        print('best')
+        print('pk: ', best[0])
+        print('p: ', best[1])
+        print('r: ', best[2])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -93,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("--sentence_bert_name",
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
     parser.add_argument("--win_len", default=2)
-    parser.add_argument("--step_len", default=2)
+    parser.add_argument("--step_len", default=1)
     parser.add_argument("--max_token_num", default=512)
     parser.add_argument("--bbox_flag", default=False)
     parser.add_argument("--sentence_bert_flag", default=False)
@@ -103,13 +134,15 @@ if __name__ == "__main__":
     parser.add_argument("--weight_1", default=1.0)
     parser.add_argument("--alpha", default=0.25)
     parser.add_argument("--gamma", default=2.0)
-    parser.add_argument("--cos_sim_threhold", default=0)
+    parser.add_argument("--dev_step", default=10000)
+    parser.add_argument("--cos_sim_threhold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross', 'focal'])
     parser.add_argument("--seg_model_name", default='bert_cos_sim')
     parser.add_argument("--semantic_dim", default=768)
     args = parser.parse_args()
     print(args)
     semantic_dim = int(args.semantic_dim)
+    dev_step = int(args.dev_step)
     cos_sim_threhold = float(args.cos_sim_threhold)
     dataset_name = args.dataset_name
     model_name = args.model_name
@@ -144,7 +177,8 @@ if __name__ == "__main__":
           gamma=gamma,
           loss_func_name=loss_func_name,
           cos_sim_threhold=cos_sim_threhold,
-          semantic_dim=semantic_dim)
+          semantic_dim=semantic_dim,
+          dev_step=dev_step)
 
 
 
