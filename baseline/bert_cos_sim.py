@@ -11,9 +11,9 @@ class BertCosSim(torch.nn.Module):
         cls_feature = bert_feature[:, 0, :]
         cos_sim = torch.cosine_similarity(cls_feature[0], cls_feature[1], dim=0)
         if cos_sim <= self.threshold:
-            return 0
-        else:
             return 1
+        else:
+            return 0
 
     def forward(self, data):
         batch_num = data['input_ids'].shape[0]

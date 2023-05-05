@@ -76,14 +76,15 @@ def train(dataset_name,
         backbone_model = LlamaModel.from_pretrained(model_name).to(device)
 
     seg_model_dict = {'bert_cos_sim': bert_cos_sim.BertCosSim(bert_model=backbone_model,
-                                        threshold=cos_sim_threhold).to(device),
-                      'double_bert': double_bert.DoubleBert(),
+                                                              threshold=cos_sim_threhold),
+                      'double_bert': double_bert.DoubleBert(bert_model=backbone_model,
+                                                            threshold=cos_sim_threhold),
                       'llama_cos_sim': llama_cos_sim.LlamaCosSim(),
-                      'sentence_bert': sentence_bert.SentenceBertCosSim(),
+                      'sentence_bert': sentence_bert.SentenceBertCosSim(cos_sim_threhold),
                       'two_levle': two_level_trans.TwoLevelTrans(),
                       'cross_seg': cross_seg.CrossSeg(),
                       }
-    seg_model = seg_model_dict[seg_model_name]
+    seg_model = seg_model_dict[seg_model_name].to(device)
     for epoch_num in range(epoch):
         for step, data in tqdm(enumerate(dataloader_train), total=len(dataloader_train)):
             seg_model(data)
@@ -126,8 +127,8 @@ if __name__ == "__main__":
     parser.add_argument("--win_len", default=2)
     parser.add_argument("--step_len", default=1)
     parser.add_argument("--max_token_num", default=512)
-    parser.add_argument("--bbox_flag", default=False)
-    parser.add_argument("--sentence_bert_flag", default=False)
+    parser.add_argument("--bbox_flag", default='0')
+    parser.add_argument("--sentence_bert_flag", default='1')
     parser.add_argument("--device", default='cuda:0')
     parser.add_argument("--batch_size", default=4)
     parser.add_argument("--weight_0", default=1.0)
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threhold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross', 'focal'])
-    parser.add_argument("--seg_model_name", default='bert_cos_sim')
+    parser.add_argument("--seg_model_name", default='double_bert')
     parser.add_argument("--semantic_dim", default=768)
     args = parser.parse_args()
     print(args)
