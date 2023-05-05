@@ -25,10 +25,6 @@ def validate(seg_model, dataloader, loss_func):
     r = recall_score(y_true=label_all, y_pred=prediction_all,
                         average='micro', labels=labels_to_cal)
 
-
-    print('pk: ', pk)
-    print('p: ', p)
-    print('r: ', r)
     return_value = {'pk': pk,
                     'p': p,
                     'r': r,

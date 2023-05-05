@@ -30,7 +30,8 @@ def train(dataset_name,
           loss_func_name,
           cos_sim_threhold,
           semantic_dim,
-          dev_step):
+          dev_step,
+          feature_type):
     best = [0, 0, 0]
     dataloader_train = get_dataloader(dataset_name=dataset_name,
                                       model_name=model_name,
@@ -65,7 +66,6 @@ def train(dataset_name,
                                       device=device,
                                       batch_size=batch_size,
                                       goal='val')
-    epoch = 10000
     weight_cross = torch.tensor([weight_0, weight_1]).to(device)
     loss_func_dict = {'cross': CrossEntroy(weight=weight_cross),
                      'focal': FocalLoss(alpha=alpha, gamma=gamma)}
@@ -79,12 +79,20 @@ def train(dataset_name,
                                                               threshold=cos_sim_threhold),
                       'double_bert': double_bert.DoubleBert(bert_model=backbone_model,
                                                             threshold=cos_sim_threhold),
-                      'llama_cos_sim': llama_cos_sim.LlamaCosSim(),
+                      'llama_cos_sim': llama_cos_sim.LlamaCosSim(bert_model=backbone_model,
+                                                                 threshold=cos_sim_threhold,
+                                                                 feature_type=feature_type),
                       'sentence_bert': sentence_bert.SentenceBertCosSim(cos_sim_threhold),
                       'two_levle': two_level_trans.TwoLevelTrans(),
                       'cross_seg': cross_seg.CrossSeg(),
                       }
     seg_model = seg_model_dict[seg_model_name].to(device)
+    if seg_model_name in ['bert_cos_sim', 'llama_cos_sim',
+                          'double_bert', 'sentence_bert']:
+        epoch = 1
+    else:
+        epoch = 100
+
     for epoch_num in range(epoch):
         for step, data in tqdm(enumerate(dataloader_train), total=len(dataloader_train)):
             seg_model(data)
@@ -117,6 +125,21 @@ def train(dataset_name,
         print('pk: ', best[0])
         print('p: ', best[1])
         print('r: ', best[2])
+        save_folder_path = 'log/' + seg_model_name
+        save_folder_flag = os.path.exists(save_folder_path)
+        if not save_folder_flag:
+            os.makedirs(save_folder_path)
+
+        save_file_path = save_folder_path + '/' + 'result_' + feature_type + '.txt'
+        with open(save_file_path, 'a+') as f:
+            f.write('====================\n')
+            f.write(str(epoch_num) + '\n'
+                    + 'pk: ' + str(pk) + '\n'
+                    + 'p: ' + str(p) + '\n'
+                    + 'r: ' + str(r) + '\n'
+                    + 'best_pk: ' + str(best[0]) + '\n'
+                    + 'best_p: ' + str(best[1]) + '\n'
+                    + 'best_r: ' + str(best[2]) + '\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -138,10 +161,12 @@ if __name__ == "__main__":
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threhold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross', 'focal'])
-    parser.add_argument("--seg_model_name", default='double_bert')
+    parser.add_argument("--seg_model_name", default='sentence_bert')
     parser.add_argument("--semantic_dim", default=768)
+    parser.add_argument("--feature_type", default='max', choices=['max', 'mean'])
     args = parser.parse_args()
     print(args)
+    feature_type = args.feature_type
     semantic_dim = int(args.semantic_dim)
     dev_step = int(args.dev_step)
     cos_sim_threhold = float(args.cos_sim_threhold)
@@ -179,7 +204,8 @@ if __name__ == "__main__":
           loss_func_name=loss_func_name,
           cos_sim_threhold=cos_sim_threhold,
           semantic_dim=semantic_dim,
-          dev_step=dev_step)
+          dev_step=dev_step,
+          feature_type=feature_type)
 
 
 
