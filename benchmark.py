@@ -85,7 +85,8 @@ def train(dataset_name,
                                                                  feature_type=feature_type),
                       'sentence_bert': sentence_bert.SentenceBertCosSim(cos_sim_threshold),
                       'two_level': two_level_trans.TwoLevelTrans(sim_dim=semantic_dim),
-                      'cross_seg': cross_seg.CrossSeg(sim_dim=semantic_dim),
+                      'cross_seg': cross_seg.CrossSeg(bert_model=backbone_model,
+                                                      sim_dim=semantic_dim),
                       }
     seg_model = seg_model_dict[seg_model_name].to(device)
     seg_model.train()

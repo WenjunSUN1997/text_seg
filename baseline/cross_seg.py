@@ -2,19 +2,24 @@ import torch
 
 class CrossSeg(torch.nn.Module):
 
-    def __init__(self, sim_dim):
+    def __init__(self, bert_model, sim_dim):
         super(CrossSeg, self).__init__()
+        self.bert_model = bert_model
         self.sim_dim = sim_dim
         self.encoder_layer = torch.nn.TransformerEncoderLayer(d_model=sim_dim,
                                                               nhead=8,
                                                               batch_first=True)
         self.encoder = torch.nn.TransformerEncoder(self.encoder_layer,
                                                    num_layers=2)
-        self.linear = torch.nn.Linear(in_features=2 * sim_dim, out_features=2)
+        self.linear = torch.nn.Linear(in_features=sim_dim, out_features=2)
 
-    def judge_sim(self, sentence_bert_vec):
-        output_encoder = self.encoder(sentence_bert_vec)
-        prob_log = self.linear(output_encoder.view(2 * self.sim_dim))
+    def judge_sim(self, input_ids, attention_mask):
+        bert_feature = self.bert_model(input_ids=input_ids,
+                                       attention_mask=attention_mask)['last_hidden_state']
+        bert_feature = bert_feature.view(-1, self.sim_dim)
+        output_encoder = self.encoder(bert_feature)
+        input_linear, _ = torch.max(output_encoder, dim=0)
+        prob_log = self.linear(input_linear.unsqueeze(0))
         prob = torch.softmax(prob_log, dim=-1)
         label = torch.argmax(prob)
         return {'prob': prob,
@@ -23,9 +28,11 @@ class CrossSeg(torch.nn.Module):
     def forward(self, data):
         seg_result = []
         prob = []
-        batch_num = data['sentence_bert_vec'].shape[0]
+        batch_num = data['input_ids'].shape[0]
         for batch_index in range(batch_num):
-            output_judge_layer = self.judge_sim(data['sentence_bert_vec'][batch_index])
+            input_ids = data['input_ids'][batch_index]
+            attention_mask = data['attention_mask'][batch_index]
+            output_judge_layer = self.judge_sim(input_ids, attention_mask)
             prob.append(output_judge_layer['prob'])
             seg_result.append(output_judge_layer['label'])
 
