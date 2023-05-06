@@ -70,6 +70,7 @@ def train(dataset_name,
     loss_func_dict = {'cross': CrossEntroy(weight=weight_cross),
                      'focal': FocalLoss(alpha=alpha, gamma=gamma)}
     loss_func = loss_func_dict[loss_func_name]
+    loss_all = []
     if 'llama' not in model_name:
         backbone_model = BertModel.from_pretrained(model_name).to(device)
     else:
@@ -83,16 +84,24 @@ def train(dataset_name,
                                                                  threshold=cos_sim_threshold,
                                                                  feature_type=feature_type),
                       'sentence_bert': sentence_bert.SentenceBertCosSim(cos_sim_threshold),
-                      'two_level': two_level_trans.TwoLevelTrans(),
-                      'cross_seg': cross_seg.CrossSeg(),
+                      'two_level': two_level_trans.TwoLevelTrans(sim_dim=semantic_dim),
+                      'cross_seg': cross_seg.CrossSeg(sim_dim=semantic_dim),
                       }
     seg_model = seg_model_dict[seg_model_name].to(device)
+    seg_model.train()
     try:
-        for para in seg_model.bert_model.parameters():
-            para.requires_grad = False
+        frozen_layer = seg_model.bert_model
+        for param in frozen_layer.parameters():
+            param.requires_grad = False
     except:
         pass
 
+    optimizer = torch.optim.AdamW(seg_model.parameters(), lr=2e-5)
+    scheduler = ReduceLROnPlateau(optimizer,
+                                  mode='min',
+                                  factor=0.5,
+                                  patience=2,
+                                  verbose=True)
     if seg_model_name in ['bert_cos_sim', 'llama_cos_sim',
                           'double_bert', 'sentence_bert']:
         epoch = 1
@@ -101,12 +110,19 @@ def train(dataset_name,
 
     for epoch_num in range(epoch):
         for step, data in tqdm(enumerate(dataloader_train), total=len(dataloader_train)):
-            seg_model(data)
+            # if step >= 5:
+            #     break
             if seg_model_name in ['bert_cos_sim', 'llama_cos_sim',
                                   'double_bert', 'sentence_bert']:
                 break
             else:
-                pass
+                output = seg_model(data)
+                prob = output['prob']
+                loss_value = loss_func(prob, data['label_seg'].view(-1))
+                loss_all.append(loss_value.item())
+                optimizer.zero_grad()
+                loss_value.backward()
+                optimizer.step()
 
             if (step+1) % dev_step == 0:
                 dev_output = validate(seg_model=seg_model,
@@ -116,10 +132,16 @@ def train(dataset_name,
         val_output = validate(seg_model=seg_model,
                               dataloader=dataloader_val,
                               loss_func=loss_func)
+        scheduler.step(val_output['loss'])
         pk = val_output['pk']
         p = val_output['p']
         r = val_output['r']
         print(epoch_num)
+        try:
+            print('train_loss: ', sum(loss_all) / len(loss_all))
+        except:
+            pass
+        print('val_loss: ', val_output['loss'])
         print('pk: ', pk)
         print('p: ', p)
         print('r: ', r)
@@ -169,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross', 'focal'])
-    parser.add_argument("--seg_model_name", default='sentence_bert',
+    parser.add_argument("--seg_model_name", default='cross_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg'])
     parser.add_argument("--semantic_dim", default=768)

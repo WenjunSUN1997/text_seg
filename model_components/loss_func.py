@@ -24,7 +24,7 @@ class FocalLoss(nn.Module):
 class CrossEntroy(nn.Module):
     def __init__(self, weight):
         super(CrossEntroy, self).__init__()
-        self.loss_function = nn.BCELoss(weight=weight)
+        self.loss_function = nn.CrossEntropyLoss(weight=weight)
 
-    def forward(self, input, target):
-        return self.loss_function(input, target)
+    def forward(self, inputs, targets):
+        return self.loss_function(inputs, targets)
