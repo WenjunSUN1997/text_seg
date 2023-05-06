@@ -7,7 +7,7 @@ class LlamaCosSim(BertCosSim):
         self.feature_type = feature_type
 
     def judge_sim(self, input_ids, attention_mask):
-        bert_feature = self.bert(input_ids=input_ids,
+        bert_feature = self.bert_model(input_ids=input_ids,
                                  attention_mask=attention_mask,
                                  output_hidden_states=True,
                                  return_dict=True
