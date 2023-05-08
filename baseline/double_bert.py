@@ -13,6 +13,10 @@ class DoubleBert(torch.nn.Module):
                                     dim=0)
         max_values_1, _ = torch.max(torch.stack([cls_feature[1], sentence_bert[1]]),
                                     dim=0)
+        # if max_values_0 == cls_feature[0] or max_values_1 == cls_feature[1]:
+        #     max_values_0 = torch.stack([cls_feature[0], sentence_bert[0]])
+        #     max_values_1 = torch.stack([cls_feature[1], sentence_bert[1]])
+
         cos_sim = torch.cosine_similarity(max_values_0, max_values_1, dim=0)
         if cos_sim <= self.threshold:
             return 1

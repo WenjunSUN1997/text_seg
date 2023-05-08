@@ -19,7 +19,7 @@ class CrossSeg(torch.nn.Module):
         bert_feature = bert_feature.view(-1, self.sim_dim)
         output_encoder = self.encoder(bert_feature)
         input_linear, _ = torch.max(output_encoder, dim=0)
-        prob_log = self.linear(input_linear.unsqueeze(0))
+        prob_log = self.linear(input_linear)
         prob = torch.softmax(prob_log, dim=-1)
         label = torch.argmax(prob)
         return {'prob': prob,

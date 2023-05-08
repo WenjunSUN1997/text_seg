@@ -26,18 +26,24 @@ def validate(seg_model, dataloader, loss_func):
     label_all_nltk = convert_seg_to_nltk(label_all)
     prediction_all_nltk = convert_seg_to_nltk(prediction_all)
     pk = nltk.pk(ref=label_all_nltk, hyp=prediction_all_nltk)
+    windiff = nltk.windowdiff(label_all_nltk, prediction_all_nltk, k=3)
     p = precision_score(y_true=label_all, y_pred=prediction_all,
                         average='micro', labels=labels_to_cal)
     r = recall_score(y_true=label_all, y_pred=prediction_all,
                         average='micro', labels=labels_to_cal)
+    f = f1_score(y_true=label_all, y_pred=prediction_all,
+                 average='micro', labels=labels_to_cal)
+
     try:
         loss = sum(loss_all) / len(label_all)
     except:
         loss = 0
 
     return_value = {'pk': pk,
+                    'windiff': windiff,
                     'p': p,
                     'r': r,
+                    'f': f,
                     'loss': loss}
     return return_value
 

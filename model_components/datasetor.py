@@ -73,6 +73,14 @@ class Datasetor(Dataset):
                                 for i in range(len(label_group_list))]
         label_cos_sim_list = []
         label_seg = []
+        label_fig = []
+        for index_1 in range(len(label_group_list)):
+            for index_2 in range(index_1):
+                if label_group_list[index_1] == label_group_list[index_2]:
+                    label_fig.append(1)
+                else:
+                    label_fig.append(0)
+
         for index in range(len(label_group_list)-1):
             if label_group_list[index] == label_group_list[index+1]:
                 label_seg.append(0)
@@ -95,12 +103,16 @@ class Datasetor(Dataset):
 
         return torch.tensor(label_seg).to(self.device), \
                torch.tensor(label_cos_sim_list).to(self.device), \
-               torch.tensor(label_cos_sim_matrix).to(self.device)
+               torch.tensor(label_cos_sim_matrix).to(self.device), \
+               torch.tensor(label_fig).to(self.device)
 
     def get_bbox(self, bbox_list):
-        bbox = [[v[0], v[2]] for v in bbox_list]
+        bbox = [v[0] + v[2] for v in bbox_list]
         for bbox_sub in bbox:
-            pass
+            for index in range(len(bbox_sub)):
+                if bbox_sub[index] > 5000:
+                    bbox_sub[index] = 5000
+                bbox_sub[index] = 1000 * (bbox_sub[index] / 5000)
 
         return bbox
 
@@ -108,7 +120,8 @@ class Datasetor(Dataset):
         sentence_list = self.sentence[item]
         label_group_list = self.label_group[item]
         tokens = self.get_tokens(sentence_list)
-        label_seg, label_cos_sim_list, label_cos_sim_matrix = self.get_labels(label_group_list)
+        label_seg, label_cos_sim_list, \
+        label_cos_sim_matrix, label_fig = self.get_labels(label_group_list)
         if self.sentence_bert_flag:
             sentence_bert_vec = self.sentence_bert.encode(sentence_list)
             sentence_bert_vec = torch.tensor(sentence_bert_vec).to(self.device)
@@ -117,16 +130,18 @@ class Datasetor(Dataset):
 
         if self.bbox_flag:
             bbox_list = self.bbox[item]
-            bbox = self.get_bbox(bbox_list)
+            bbox = torch.tensor(self.get_bbox(bbox_list)).to(self.device)
         else:
             bbox = -100
 
         result = {'input_ids': tokens['input_ids'].to(self.device),
                   'attention_mask': tokens['attention_mask'].to(self.device),
                   'label_seg': label_seg,
+                  'label_fig': label_fig,
                   'label_cos_sim_list': label_cos_sim_list,
                   'label_cos_sim_matrix': label_cos_sim_matrix,
                   'sentence_bert_vec': sentence_bert_vec,
+                  'bbox': bbox
                   }
         return result
 
@@ -141,7 +156,7 @@ if __name__ == "__main__":
                     bbox_flag=True,
                     sentence_bert_flag=True,
                     device='cuda:0')
-    print(obj[0])
+    print(obj[4])
 
 
 

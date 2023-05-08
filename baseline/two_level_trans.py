@@ -1,7 +1,6 @@
 import torch
 
-class TwoLevelTrans():
-
+class TwoLevelTrans(torch.nn.Module):
     def __init__(self, sim_dim):
         super(TwoLevelTrans, self).__init__()
         self.sim_dim = sim_dim

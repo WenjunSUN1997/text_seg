@@ -32,7 +32,7 @@ def train(dataset_name,
           semantic_dim,
           dev_step,
           feature_type):
-    best = [0, 0, 0]
+    best = [0, 0, 0, 0, 0]
     dataloader_train = get_dataloader(dataset_name=dataset_name,
                                       model_name=model_name,
                                       sentence_bert_name=sentence_bert_name,
@@ -45,29 +45,32 @@ def train(dataset_name,
                                       batch_size=batch_size,
                                       goal='train')
     dataloader_dev = get_dataloader(dataset_name=dataset_name,
-                                      model_name=model_name,
-                                      sentence_bert_name=sentence_bert_name,
-                                      win_len=win_len,
-                                      step_len=step_len,
-                                      max_token_num=max_token_num,
-                                      bbox_flag=bbox_flag,
-                                      sentence_bert_flag=sentence_bert_flag,
-                                      device=device,
-                                      batch_size=batch_size,
-                                      goal='dev')
+                                    model_name=model_name,
+                                    sentence_bert_name=sentence_bert_name,
+                                    win_len=win_len,
+                                    step_len=step_len,
+                                    max_token_num=max_token_num,
+                                    bbox_flag=bbox_flag,
+                                    sentence_bert_flag=sentence_bert_flag,
+                                    device=device,
+                                    batch_size=batch_size,
+                                    goal='dev')
     dataloader_val = get_dataloader(dataset_name=dataset_name,
-                                      model_name=model_name,
-                                      sentence_bert_name=sentence_bert_name,
-                                      win_len=win_len,
-                                      step_len=step_len,
-                                      max_token_num=max_token_num,
-                                      bbox_flag=bbox_flag,
-                                      sentence_bert_flag=sentence_bert_flag,
-                                      device=device,
-                                      batch_size=batch_size,
-                                      goal='val')
+                                    model_name=model_name,
+                                    sentence_bert_name=sentence_bert_name,
+                                    win_len=win_len,
+                                    step_len=step_len,
+                                    max_token_num=max_token_num,
+                                    bbox_flag=bbox_flag,
+                                    sentence_bert_flag=sentence_bert_flag,
+                                    device=device,
+                                    batch_size=batch_size,
+                                    goal='val')
     weight_cross = torch.tensor([weight_0, weight_1]).to(device)
-    loss_func_dict = {'cross': CrossEntroy(weight=weight_cross),
+    loss_func_dict = {'cross': CrossEntroy(device=device,
+                                           dataset_name=dataset_name,
+                                           dataloader=dataloader_train,
+                                           model_type=seg_model_name),
                      'focal': FocalLoss(alpha=alpha, gamma=gamma)}
     loss_func = loss_func_dict[loss_func_name]
     loss_all = []
@@ -96,13 +99,16 @@ def train(dataset_name,
             param.requires_grad = False
     except:
         pass
+    try:
+        optimizer = torch.optim.AdamW(seg_model.parameters(), lr=2e-5)
+        scheduler = ReduceLROnPlateau(optimizer,
+                                      mode='min',
+                                      factor=0.5,
+                                      patience=2,
+                                      verbose=True)
+    except:
+        pass
 
-    optimizer = torch.optim.AdamW(seg_model.parameters(), lr=2e-5)
-    scheduler = ReduceLROnPlateau(optimizer,
-                                  mode='min',
-                                  factor=0.5,
-                                  patience=2,
-                                  verbose=True)
     if seg_model_name in ['bert_cos_sim', 'llama_cos_sim',
                           'double_bert', 'sentence_bert']:
         epoch = 1
@@ -133,10 +139,15 @@ def train(dataset_name,
         val_output = validate(seg_model=seg_model,
                               dataloader=dataloader_val,
                               loss_func=loss_func)
-        scheduler.step(val_output['loss'])
+        try:
+            scheduler.step(val_output['loss'])
+        except:
+            pass
         pk = val_output['pk']
+        windiff = val_output['windiff']
         p = val_output['p']
         r = val_output['r']
+        f = val_output['f']
         print(epoch_num)
         try:
             print('train_loss: ', sum(loss_all) / len(loss_all))
@@ -144,38 +155,48 @@ def train(dataset_name,
             pass
         print('val_loss: ', val_output['loss'])
         print('pk: ', pk)
+        print('windiff: ', windiff)
         print('p: ', p)
         print('r: ', r)
+        print('r: ', f)
         if pk >= best[0]:
             best[0] = pk
-            best[1] = p
-            best[2] = r
+            best[1] = windiff
+            best[2] = p
+            best[3] = r
+            best[4] = f
         print('best')
         print('pk: ', best[0])
-        print('p: ', best[1])
-        print('r: ', best[2])
+        print('windiff: ', best[1])
+        print('p: ', best[2])
+        print('r: ', best[3])
+        print('f: ', best[4])
         save_folder_path = 'log/' + seg_model_name + '/' + dataset_name
         save_folder_flag = os.path.exists(save_folder_path)
         if not save_folder_flag:
             os.makedirs(save_folder_path)
 
         save_file_path = save_folder_path + '/' + 'result_' + feature_type + '.txt'
-        with open(save_file_path, 'a+') as f:
-            f.write('====================\n')
-            f.write(str(epoch_num) + '\n'
-                    + 'pk: ' + str(pk) + '\n'
-                    + 'p: ' + str(p) + '\n'
-                    + 'r: ' + str(r) + '\n'
-                    + 'best_pk: ' + str(best[0]) + '\n'
-                    + 'best_p: ' + str(best[1]) + '\n'
-                    + 'best_r: ' + str(best[2]) + '\n')
+        with open(save_file_path, 'a+') as file:
+            file.write('====================\n')
+            file.write(str(epoch_num) + '\n'
+                       + 'pk: ' + str(pk) + '\n'
+                       + 'windiff: ' + str(windiff) + '\n'
+                       + 'p: ' + str(p) + '\n'
+                       + 'r: ' + str(r) + '\n'
+                       + 'f: ' + str(f) + '\n'
+                       + 'best_pk: ' + str(best[0]) + '\n'
+                       + 'best_windiff: ' + str(best[1]) + '\n'
+                       + 'best_p: ' + str(best[2]) + '\n'
+                       + 'best_r: ' + str(best[3]) + '\n'
+                       + 'best_f: ' + str(best[4]) + '\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", default='choi', choices=['choi', '50',
-                                                                   'fr',  'fi',
-                                                                   'city', 'diseases'])
-    parser.add_argument("--model_name", default='bert-base-uncased')
+    parser.add_argument("--dataset_name", default='fi', choices=['choi', '50',
+                                                                 'fr',  'fi',
+                                                                 'city', 'diseases'])
+    parser.add_argument("--model_name", default='TurkuNLP/bert-base-finnish-cased-v1')
     parser.add_argument("--sentence_bert_name",
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
     parser.add_argument("--win_len", default=2)
@@ -194,7 +215,7 @@ if __name__ == "__main__":
     parser.add_argument("--loss_func_name", default='cross', choices=['cross', 'focal'])
     parser.add_argument("--seg_model_name", default='cross_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
-                                 'sentence_bert', 'two_level', 'cross_seg'])
+                                 'sentence_bert', 'two_level', 'cross_seg', 'fig_seg'])
     parser.add_argument("--semantic_dim", default=768)
     parser.add_argument("--feature_type", default='max', choices=['max', 'mean'])
     args = parser.parse_args()

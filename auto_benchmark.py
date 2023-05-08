@@ -73,7 +73,7 @@ if __name__ == "__main__":
                                      'alpha': 0.25,
                                      'gamma': 2.0,
                                      'dev_step': 1000,
-                                     'cos_sim_threshold': 0.5,
+                                     'cos_sim_threshold': 0,
                                      'loss_func_name': 'cross',
                                      'semantic_dim': 768,
                                      'feature_type': 'max',
