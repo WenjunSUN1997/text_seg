@@ -1,6 +1,7 @@
 from model_components.dataloader import get_dataloader
 from baseline import bert_cos_sim, double_bert, cross_seg,\
     llama_cos_sim, two_level_trans, sentence_bert
+from model_config.fig_seg import FigSeg
 from transformers import BertModel, LlamaModel
 import argparse
 import torch
@@ -31,7 +32,11 @@ def train(dataset_name,
           cos_sim_threshold,
           semantic_dim,
           dev_step,
-          feature_type):
+          feature_type,
+          token_encoder_flag,
+          sentence_encoder_flag,
+          partial_encoder_flag,
+          llama_flag):
     best = [0, 0, 0, 0, 0]
     dataloader_train = get_dataloader(dataset_name=dataset_name,
                                       model_name=model_name,
@@ -90,6 +95,13 @@ def train(dataset_name,
                       'two_level': two_level_trans.TwoLevelTrans(sim_dim=semantic_dim),
                       'cross_seg': cross_seg.CrossSeg(bert_model=backbone_model,
                                                       sim_dim=semantic_dim),
+                      'fig_seg': FigSeg(token_encoder_flag=token_encoder_flag,
+                                        sentence_encoder_flag=sentence_encoder_flag,
+                                        partial_encoder_flag=partial_encoder_flag,
+                                        sim_dim=semantic_dim,
+                                        bert_model=backbone_model,
+                                        llama_flag=llama_flag,
+                                        bbox_flag=bbox_flag)
                       }
     seg_model = seg_model_dict[seg_model_name].to(device)
     seg_model.train()
@@ -193,33 +205,42 @@ def train(dataset_name,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", default='fi', choices=['choi', '50',
+    parser.add_argument("--dataset_name", default='fr', choices=['choi', '50',
                                                                  'fr',  'fi',
                                                                  'city', 'diseases'])
-    parser.add_argument("--model_name", default='TurkuNLP/bert-base-finnish-cased-v1')
+    parser.add_argument("--model_name", default='camembert-base')
     parser.add_argument("--sentence_bert_name",
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
-    parser.add_argument("--win_len", default=2)
-    parser.add_argument("--step_len", default=1)
+    parser.add_argument("--win_len", default=8)
+    parser.add_argument("--step_len", default=8)
     parser.add_argument("--max_token_num", default=512)
-    parser.add_argument("--bbox_flag", default='0')
+    parser.add_argument("--bbox_flag", default='1')
     parser.add_argument("--sentence_bert_flag", default='1')
     parser.add_argument("--device", default='cuda:0')
-    parser.add_argument("--batch_size", default=4)
+    parser.add_argument("--batch_size", default=2)
     parser.add_argument("--weight_0", default=1.0)
     parser.add_argument("--weight_1", default=1.0)
     parser.add_argument("--alpha", default=0.25)
     parser.add_argument("--gamma", default=2.0)
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threshold", default=0.5)
-    parser.add_argument("--loss_func_name", default='cross', choices=['cross', 'focal'])
-    parser.add_argument("--seg_model_name", default='cross_seg',
+    parser.add_argument("--loss_func_name", default='focal', choices=['cross', 'focal'])
+    parser.add_argument("--seg_model_name", default='fig_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg', 'fig_seg'])
     parser.add_argument("--semantic_dim", default=768)
     parser.add_argument("--feature_type", default='max', choices=['max', 'mean'])
+    parser.add_argument("--token_encoder_flag", default='1')
+    parser.add_argument("--sentence_encoder_flag", default='1')
+    parser.add_argument("--partial_encoder_flag", default='1')
+    parser.add_argument("--llama_flag", default='0')
+
     args = parser.parse_args()
     print(args)
+    llama_flag = True if args.llama_flag == '1' else False
+    token_encoder_flag = True if args.token_encoder_flag == '1' else False
+    sentence_encoder_flag = True if args.sentence_encoder_flag == '1' else False
+    partial_encoder_flag = True if args.partial_encoder_flag == '1' else False
     feature_type = args.feature_type
     semantic_dim = int(args.semantic_dim)
     dev_step = int(args.dev_step)
@@ -259,7 +280,11 @@ if __name__ == "__main__":
           cos_sim_threshold=cos_sim_threshold,
           semantic_dim=semantic_dim,
           dev_step=dev_step,
-          feature_type=feature_type)
+          feature_type=feature_type,
+          token_encoder_flag=token_encoder_flag,
+          sentence_encoder_flag=sentence_encoder_flag,
+          partial_encoder_flag=partial_encoder_flag,
+          llama_flag=llama_flag)
 
 
 

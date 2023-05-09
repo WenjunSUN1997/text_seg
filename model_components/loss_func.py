@@ -38,7 +38,7 @@ class CrossEntroy(nn.Module):
         super(CrossEntroy, self).__init__()
         self.model_type = model_type
         self.dataloader = dataloader
-        self.weight = self.get_weight(dataset_name, device)
+        # self.weight = self.get_weight(dataset_name, device)
         # self.loss_function = nn.CrossEntropyLoss(weight=self.weight)
         self.loss_function = nn.CrossEntropyLoss()
 

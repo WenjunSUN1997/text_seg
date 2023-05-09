@@ -132,4 +132,9 @@ if __name__ == "__main__":
                   cos_sim_threshold=cos_sim_threshold,
                   semantic_dim=semantic_dim,
                   dev_step=dev_step,
-                  feature_type=feature_type)
+                  feature_type=feature_type,
+                  token_encoder_flag=False,
+                  sentence_encoder_flag=False,
+                  partial_encoder_flag=False,
+                  llama_flag=False
+                  )
