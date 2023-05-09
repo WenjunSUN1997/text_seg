@@ -38,6 +38,18 @@ class FigSeg(torch.nn.Module):
 
         return torch.stack(bert_feature_result)
 
+    def get_sim(self, feature):
+        batch_size = feature.shape[0]
+        result = []
+        for batch_index in range(batch_size):
+            similarity_matrix = torch.cosine_similarity(feature[batch_index].unsqueeze(1),
+                                                        feature[batch_index].unsqueeze(0),
+                                                        dim=-1)
+            result.append(similarity_matrix)
+
+        return torch.stack(result)
+
+
     def forward(self, data):
         bert_feature = self.get_bert_feature(data)
         if self.token_encoder_flag:
@@ -52,13 +64,10 @@ class FigSeg(torch.nn.Module):
 
         if self.bbox_flag:
             pos_embedding = self.pos_embeder(data)
+            sentence_feature = sentence_feature + pos_embedding
 
-
-
-
-
-
-
-
+        sim_token_feature = self.get_sim(token_feature)
+        sim_sentence_bert = self.get_sim(data['sentence_bert_vec'])
+        sim_sentence_feature = self.get_sim(sentence_feature)
 
         return data
