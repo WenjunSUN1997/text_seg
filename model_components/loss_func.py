@@ -76,5 +76,37 @@ class CrossEntroy(nn.Module):
         weight = torch.tensor(weight).to(device)
         return weight
 
+class LossFigSeg(torch.nn.Module):
+    def __init__(self, device,
+                 dataset_name,
+                 model_type,
+                 dataloader,
+                 loss_func_name):
+        super(LossFigSeg, self).__init__()
+        if loss_func_name == 'cross':
+            self.loss_classification = CrossEntroy(device=device,
+                                           dataset_name=dataset_name,
+                                           dataloader=dataloader,
+                                           model_type=model_type)
+        else:
+            self.loss_classification = FocalLoss(gamma=2, alpha=0.25)
+
+    def forward(self, output_model, data):
+        seg_label = data['label_seg'].view(-1)
+        loss_fig = self.loss_classification(output_model['prob_fig'].view(-1, 2),
+                                            data['label_cos_sim_matrix'].view(-1))
+        label_token = data['label_cos_sim_matrix']
+        label_token[label_token == 0] = -1
+        loss_token = torch.sum(torch.abs(output_model['token_sim'] - label_token))
+        loss_sentence = torch.sum(torch.abs(output_model['sentence_sim'] - label_token))
+        return loss_fig + loss_token + loss_sentence
+
+
+    def post_process(self, sim_fig):
+        batch_size = sim_fig.shape[0]
+        result = []
+        for batch_index in range(batch_size):
+            result.append([])
+
 
 

@@ -111,7 +111,7 @@ class Datasetor(Dataset):
         for bbox_sub in bbox:
             for index in range(len(bbox_sub)):
                 if bbox_sub[index] > 5000:
-                    bbox_sub[index] = 5000
+                    bbox_sub[index] = 4990
                 bbox_sub[index] = int(1000 * (bbox_sub[index] / 5000))
 
         return bbox

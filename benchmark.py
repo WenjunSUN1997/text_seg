@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 import os
 from model_components.validator import validate
-from model_components.loss_func import FocalLoss, CrossEntroy
+from model_components.loss_func import FocalLoss, CrossEntroy, LossFigSeg
 
 torch.manual_seed(3407)
 
@@ -76,8 +76,17 @@ def train(dataset_name,
                                            dataset_name=dataset_name,
                                            dataloader=dataloader_train,
                                            model_type=seg_model_name),
-                     'focal': FocalLoss(alpha=alpha, gamma=gamma)}
-    loss_func = loss_func_dict[loss_func_name]
+                      'focal': FocalLoss(alpha=alpha, gamma=gamma),
+                      'fig_seg': LossFigSeg(device=device,
+                                            dataset_name=dataset_name,
+                                            dataloader=dataloader_train,
+                                            model_type=seg_model_name,
+                                            loss_func_name='focal')}
+    if seg_model_name != 'fig_seg':
+        loss_func = loss_func_dict[loss_func_name]
+    else:
+        loss_func = loss_func_dict['fig_seg']
+
     loss_all = []
     if 'llama' not in model_name:
         backbone_model = BertModel.from_pretrained(model_name).to(device)
@@ -135,13 +144,19 @@ def train(dataset_name,
                                   'double_bert', 'sentence_bert']:
                 break
             else:
-                output = seg_model(data)
-                prob = output['prob']
-                loss_value = loss_func(prob, data['label_seg'].view(-1))
+                if seg_model_name != 'fig_seg':
+                    output = seg_model(data)
+                    prob = output['prob']
+                    loss_value = loss_func(prob, data['label_seg'].view(-1))
+                else:
+                    output = seg_model(data)
+                    loss_value = loss_func(output, data)
+
                 loss_all.append(loss_value.item())
                 optimizer.zero_grad()
                 loss_value.backward()
                 optimizer.step()
+
 
             if (step+1) % dev_step == 0:
                 dev_output = validate(seg_model=seg_model,
@@ -205,16 +220,16 @@ def train(dataset_name,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", default='fr', choices=['choi', '50',
+    parser.add_argument("--dataset_name", default='50', choices=['choi', '50',
                                                                  'fr',  'fi',
                                                                  'city', 'diseases'])
-    parser.add_argument("--model_name", default='camembert-base')
+    parser.add_argument("--model_name", default='bert-base-uncased')
     parser.add_argument("--sentence_bert_name",
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
     parser.add_argument("--win_len", default=8)
-    parser.add_argument("--step_len", default=8)
+    parser.add_argument("--step_len", default=7)
     parser.add_argument("--max_token_num", default=512)
-    parser.add_argument("--bbox_flag", default='1')
+    parser.add_argument("--bbox_flag", default='0')
     parser.add_argument("--sentence_bert_flag", default='1')
     parser.add_argument("--device", default='cuda:0')
     parser.add_argument("--batch_size", default=2)
@@ -224,7 +239,8 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", default=2.0)
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threshold", default=0.5)
-    parser.add_argument("--loss_func_name", default='focal', choices=['cross', 'focal'])
+    parser.add_argument("--loss_func_name", default='focal', choices=['cross',
+                                                                      'focal'])
     parser.add_argument("--seg_model_name", default='fig_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg', 'fig_seg'])

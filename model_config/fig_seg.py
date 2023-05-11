@@ -2,6 +2,11 @@ import torch
 from model_config.token_encoder import TokenEncoder
 from model_config.sentence_encoder import SentenceEncoder
 from model_config.pos_embedding import PosEmbeder
+from model_config.conv import FigConv
+from model_config.partial_encoder import PartialEncoder
+from model_config.deconv import DeConv
+from model_config.flatten import flatten_fig
+import math
 
 class FigSeg(torch.nn.Module):
     def __init__(self, token_encoder_flag,
@@ -20,6 +25,11 @@ class FigSeg(torch.nn.Module):
         self.sim_dim = sim_dim
         self.bert_model = bert_model
         self.token_encoder = TokenEncoder(sim_dim=sim_dim)
+        self.conv = FigConv()
+        self.partial_encoder = PartialEncoder()
+        self.deconv = DeConv()
+        self.linear = torch.nn.Linear(in_features=3, out_features=2)
+        self.activate = torch.nn.Tanh()
         if llama_flag:
             self.sentence_encoder = SentenceEncoder(sim_dim=sim_dim + 768)
             self.pos_embeder = PosEmbeder(sim_dim=sim_dim + 768)
@@ -49,7 +59,6 @@ class FigSeg(torch.nn.Module):
 
         return torch.stack(result)
 
-
     def forward(self, data):
         bert_feature = self.get_bert_feature(data)
         if self.token_encoder_flag:
@@ -69,5 +78,35 @@ class FigSeg(torch.nn.Module):
         sim_token_feature = self.get_sim(token_feature)
         sim_sentence_bert = self.get_sim(data['sentence_bert_vec'])
         sim_sentence_feature = self.get_sim(sentence_feature)
+        fig = torch.cat([sim_token_feature.unsqueeze(1),
+                         sim_sentence_bert.unsqueeze(1),
+                         sim_sentence_feature.unsqueeze(1)], dim=1)
+        conv_feature = self.conv(fig)
+        if self.partial_encoder_flag:
+            conv_feature = self.partial_encoder(conv_feature)
 
-        return data
+        deconv_feature = self.deconv(conv_feature)
+        input_linear = self.activate(flatten_fig(deconv_feature))
+        output_linear = self.linear(input_linear)
+        prob_fig = torch.softmax(output_linear, dim=-1)
+        seg_result = self.post_process(prob_fig)
+        result = {'token_sim': sim_token_feature,
+                  'sentence_sim': sim_sentence_feature,
+                  'prob_fig': prob_fig,
+                  'seg_result': seg_result,
+                  }
+
+        return result
+
+    def post_process(self, prob_fig):
+        batch_size = prob_fig.shape[0]
+        sentence_num = int(math.sqrt(prob_fig.shape[1]))
+        max_index = torch.argmax(prob_fig, dim=-1).view(batch_size,
+                                                        sentence_num, sentence_num)
+        result = []
+        for batch_index in range(batch_size):
+            for first_sen in range(sentence_num-1):
+                result.append(max_index[batch_index][first_sen][first_sen+1].item())
+
+        return result
+
