@@ -18,5 +18,5 @@ class TokenEncoder(torch.nn.Module):
             output_encoder = self.encoder(bert_feature[batch_index])
             result.append(output_encoder)
 
-        result = torch.mean(torch.stack(result), dim=2)
+        result = torch.mean(torch.stack(result), dim=-2)
         return result

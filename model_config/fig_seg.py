@@ -28,14 +28,10 @@ class FigSeg(torch.nn.Module):
         self.conv = FigConv()
         self.partial_encoder = PartialEncoder()
         self.deconv = DeConv()
-        self.linear = torch.nn.Linear(in_features=3, out_features=2)
+        self.linear = torch.nn.Linear(in_features=12, out_features=2)
         self.activate = torch.nn.Tanh()
-        if llama_flag:
-            self.sentence_encoder = SentenceEncoder(sim_dim=sim_dim + 768)
-            self.pos_embeder = PosEmbeder(sim_dim=sim_dim + 768)
-        else:
-            self.sentence_encoder = SentenceEncoder(sim_dim=2 * sim_dim)
-            self.pos_embeder = PosEmbeder(sim_dim=2 * sim_dim)
+        self.sentence_encoder = SentenceEncoder(sim_dim=sim_dim)
+        self.pos_embeder = PosEmbeder(sim_dim=sim_dim)
 
     def get_bert_feature(self, data):
         batch_num = data['input_ids'].shape[0]
@@ -66,8 +62,9 @@ class FigSeg(torch.nn.Module):
         else:
             token_feature = torch.mean(bert_feature, dim=2)
 
-        sentence_feature = torch.cat([token_feature, data['sentence_bert_vec']],
-                                     dim=2)
+        # sentence_feature = torch.cat([token_feature, data['sentence_bert_vec']],
+        #                              dim=2)
+        sentence_feature = token_feature
         if self.sentence_encoder_flag:
             sentence_feature = self.sentence_encoder(sentence_feature)
 
@@ -89,11 +86,12 @@ class FigSeg(torch.nn.Module):
         input_linear = self.activate(flatten_fig(deconv_feature))
         output_linear = self.linear(input_linear)
         prob_fig = torch.softmax(output_linear, dim=-1)
-        seg_result = self.post_process(prob_fig)
+        seg_result, seg_prob = self.post_process(prob_fig)
         result = {'token_sim': sim_token_feature,
                   'sentence_sim': sim_sentence_feature,
                   'prob_fig': prob_fig,
                   'seg_result': seg_result,
+                  'seg_prob': seg_prob,
                   }
 
         return result
@@ -104,9 +102,14 @@ class FigSeg(torch.nn.Module):
         max_index = torch.argmax(prob_fig, dim=-1).view(batch_size,
                                                         sentence_num, sentence_num)
         result = []
+        seg_prob = []
         for batch_index in range(batch_size):
             for first_sen in range(sentence_num-1):
-                result.append(max_index[batch_index][first_sen][first_sen+1].item())
+                seg_prob.append(prob_fig[batch_index][1 + first_sen * (sentence_num + 1)])
+                if max_index[batch_index][first_sen][first_sen+1] == 0:
+                    result.append(0)
+                else:
+                    result.append(1)
 
-        return result
+        return result, torch.stack(seg_prob)
 

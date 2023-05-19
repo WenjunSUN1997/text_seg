@@ -1,5 +1,6 @@
 from tqdm import tqdm
 from sklearn.metrics import precision_score, recall_score, f1_score
+from model_config.fig_seg import FigSeg
 import torch
 from sklearn.metrics import confusion_matrix
 import pandas as pd
@@ -15,11 +16,15 @@ def validate(seg_model, dataloader, loss_func):
     for data in tqdm(dataloader):
         output = seg_model(data)
         prediction_all += output['seg_result']
-        label_all += data['label_seg'].H.cpu().tolist()[0]
+        label_all += data['label_seg'].view(-1).cpu().tolist()
         try:
-            prob = output['prob']
-            loss_value = loss_func(prob, data['label_seg'].view(-1))
-            loss_all.append(loss_value.item())
+            if not isinstance(seg_model, FigSeg):
+                prob = output['prob']
+                loss_value = loss_func(prob, data['label_seg'].view(-1))
+                loss_all.append(loss_value.item())
+            else:
+                loss_value = loss_func(output, data)
+                loss_all.append(loss_value.item())
         except:
             continue
 
@@ -35,7 +40,7 @@ def validate(seg_model, dataloader, loss_func):
                  average='micro', labels=labels_to_cal)
 
     try:
-        loss = sum(loss_all) / len(label_all)
+        loss = sum(loss_all) / len(loss_all)
     except:
         loss = 0
 

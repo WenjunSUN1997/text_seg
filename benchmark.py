@@ -81,7 +81,7 @@ def train(dataset_name,
                                             dataset_name=dataset_name,
                                             dataloader=dataloader_train,
                                             model_type=seg_model_name,
-                                            loss_func_name='focal')}
+                                            loss_func_name='cross')}
     if seg_model_name != 'fig_seg':
         loss_func = loss_func_dict[loss_func_name]
     else:
@@ -138,7 +138,7 @@ def train(dataset_name,
 
     for epoch_num in range(epoch):
         for step, data in tqdm(enumerate(dataloader_train), total=len(dataloader_train)):
-            # if step >= 5:
+            # if step >= 3:
             #     break
             if seg_model_name in ['bert_cos_sim', 'llama_cos_sim',
                                   'double_bert', 'sentence_bert']:
@@ -228,15 +228,15 @@ if __name__ == "__main__":
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
     parser.add_argument("--win_len", default=8)
     parser.add_argument("--step_len", default=7)
-    parser.add_argument("--max_token_num", default=512)
+    parser.add_argument("--max_token_num", default=300)
     parser.add_argument("--bbox_flag", default='0')
     parser.add_argument("--sentence_bert_flag", default='1')
     parser.add_argument("--device", default='cuda:0')
     parser.add_argument("--batch_size", default=2)
     parser.add_argument("--weight_0", default=1.0)
     parser.add_argument("--weight_1", default=1.0)
-    parser.add_argument("--alpha", default=0.25)
-    parser.add_argument("--gamma", default=2.0)
+    parser.add_argument("--alpha", default=0.75)
+    parser.add_argument("--gamma", default=8.0)
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='focal', choices=['cross',
