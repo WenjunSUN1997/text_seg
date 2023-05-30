@@ -65,6 +65,6 @@ class EncoderSeg(FigSeg):
         prob = torch.softmax(output_linear, dim=-1)
         label = torch.argmax(prob, dim=-1)
         result = {'prob': prob,
-                  'seg_result': label}
+                  'seg_result': label.view(-1).cpu()}
         return result
 

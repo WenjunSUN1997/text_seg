@@ -18,7 +18,12 @@ class FocalLoss(nn.Module):
         one_hot = torch.zeros(targets.size(0), 2).to(targets.device)
         one_hot.scatter_(1, targets.view(-1, 1), 1)
         targets = one_hot
-        ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        try:
+            ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        except:
+            ce_loss = F.binary_cross_entropy_with_logits(inputs.view(-1, 2),
+                                                         targets,
+                                                         reduction='none')
         pt = torch.exp(-ce_loss)
         focal_loss = (1 - pt) ** self.gamma * ce_loss
 
@@ -43,7 +48,7 @@ class CrossEntroy(nn.Module):
         # self.loss_function = nn.CrossEntropyLoss()
 
     def forward(self, inputs, targets):
-        return self.loss_function(inputs, targets)
+        return self.loss_function(inputs.view(-1, 2), targets)
 
     def get_weight(self, dataset_name, device):
         dataset_name_dict = {'choi': 'data/train_choi.csv',

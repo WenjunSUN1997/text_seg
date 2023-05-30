@@ -244,10 +244,10 @@ if __name__ == "__main__":
     parser.add_argument("--weight_0", default=1.0)
     parser.add_argument("--weight_1", default=1.0)
     parser.add_argument("--alpha", default=0.75)
-    parser.add_argument("--gamma", default=8.0)
+    parser.add_argument("--gamma", default=2.0)
     parser.add_argument("--dev_step", default=10000)
     parser.add_argument("--cos_sim_threshold", default=0.5)
-    parser.add_argument("--loss_func_name", default='focal', choices=['cross',
+    parser.add_argument("--loss_func_name", default='cross', choices=['cross',
                                                                       'focal'])
     parser.add_argument("--seg_model_name", default='encoder_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
