@@ -2,6 +2,7 @@ from model_components.dataloader import get_dataloader
 from baseline import bert_cos_sim, double_bert, cross_seg,\
     llama_cos_sim, two_level_trans, sentence_bert
 from model_config.fig_seg import FigSeg
+from model_config.encoder_seg import EncoderSeg
 from transformers import BertModel, LlamaModel
 import argparse
 import torch
@@ -110,7 +111,14 @@ def train(dataset_name,
                                         sim_dim=semantic_dim,
                                         bert_model=backbone_model,
                                         llama_flag=llama_flag,
-                                        bbox_flag=bbox_flag)
+                                        bbox_flag=bbox_flag),
+                      'encoder_seg': EncoderSeg(token_encoder_flag=token_encoder_flag,
+                                                sentence_encoder_flag=sentence_encoder_flag,
+                                                partial_encoder_flag=partial_encoder_flag,
+                                                sim_dim=semantic_dim,
+                                                bert_model=backbone_model,
+                                                llama_flag=llama_flag,
+                                                bbox_flag=bbox_flag)
                       }
     seg_model = seg_model_dict[seg_model_name].to(device)
     seg_model.train()
@@ -241,9 +249,10 @@ if __name__ == "__main__":
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='focal', choices=['cross',
                                                                       'focal'])
-    parser.add_argument("--seg_model_name", default='fig_seg',
+    parser.add_argument("--seg_model_name", default='encoder_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
-                                 'sentence_bert', 'two_level', 'cross_seg', 'fig_seg'])
+                                 'sentence_bert', 'two_level', 'cross_seg', 'fig_seg',
+                                 'encoder_seg'])
     parser.add_argument("--semantic_dim", default=768)
     parser.add_argument("--feature_type", default='max', choices=['max', 'mean'])
     parser.add_argument("--token_encoder_flag", default='1')

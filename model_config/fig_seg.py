@@ -25,10 +25,27 @@ class FigSeg(torch.nn.Module):
         self.sim_dim = sim_dim
         self.bert_model = bert_model
         self.token_encoder = TokenEncoder(sim_dim=sim_dim)
-        self.conv = FigConv()
-        self.partial_encoder = PartialEncoder()
+        if self.bbox_flag:
+            num_in_channel = 7
+        else:
+            num_in_channel = 3
+
+        num_out_channel = 12
+        self.conv_2 = FigConv(num_in_channel=num_in_channel,
+                              num_out_channel=num_out_channel,
+                              sim_dim=sim_dim,
+                              kernel_size=2)
+        self.conv_4 = FigConv(num_in_channel=num_in_channel,
+                              num_out_channel=num_out_channel,
+                              sim_dim=sim_dim,
+                              kernel_size=4)
+        self.conv_6 = FigConv(num_in_channel=num_in_channel,
+                              num_out_channel=num_out_channel,
+                              sim_dim=sim_dim,
+                              kernel_size=6)
+        self.partial_encoder = PartialEncoder(d_model=num_out_channel)
         self.deconv = DeConv()
-        self.linear = torch.nn.Linear(in_features=12, out_features=2)
+        self.linear = torch.nn.Linear(in_features=num_out_channel, out_features=2)
         self.activate = torch.nn.Tanh()
         self.sentence_encoder = SentenceEncoder(sim_dim=sim_dim)
         self.pos_embeder = PosEmbeder(sim_dim=sim_dim)
