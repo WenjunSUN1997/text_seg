@@ -73,12 +73,12 @@ class CrossEntroy(nn.Module):
         num_of_1 = label_all.count(1)
         weight_0 = (num_of_0 + num_of_1) / (2.0 * num_of_0)
         weight_1 = (num_of_0 + num_of_1) / (2.0 * num_of_1)
-        weight = torch.tensor([weight_0, weight_1]).to(device)
+        weight = torch.tensor([weight_1, weight_0]).to(device)
 
         weight = compute_class_weight(class_weight='balanced',
                                       classes=[0, 1],
                                       y=label_all)
-        weight = torch.from_numpy(weight).float().to(device)
+        weight = torch.from_numpy(1 / weight).float().to(device)
         # weight = torch.tensor([1.0, 10000.0]).float().to(device)
         return weight
 

@@ -30,7 +30,7 @@ class FigSeg(torch.nn.Module):
         else:
             num_in_channel = 3
 
-        num_out_channel = 12
+        num_out_channel = 48
         self.conv_2 = FigConv(num_in_channel=num_in_channel,
                               num_out_channel=num_out_channel,
                               sim_dim=sim_dim,
