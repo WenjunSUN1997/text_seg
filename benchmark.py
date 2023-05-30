@@ -121,7 +121,7 @@ def train(dataset_name,
     except:
         pass
     try:
-        optimizer = torch.optim.AdamW(seg_model.parameters(), lr=2e-5)
+        optimizer = torch.optim.AdamW(seg_model.parameters(), lr=4e-5)
         scheduler = ReduceLROnPlateau(optimizer,
                                       mode='min',
                                       factor=0.5,

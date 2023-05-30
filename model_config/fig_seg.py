@@ -86,12 +86,17 @@ class FigSeg(torch.nn.Module):
         input_linear = self.activate(flatten_fig(deconv_feature))
         output_linear = self.linear(input_linear)
         prob_fig = torch.softmax(output_linear, dim=-1)
+        _, seg_logit = self.post_process(output_linear)
         seg_result, seg_prob = self.post_process(prob_fig)
         result = {'token_sim': sim_token_feature,
                   'sentence_sim': sim_sentence_feature,
                   'prob_fig': prob_fig,
                   'seg_result': seg_result,
                   'seg_prob': seg_prob,
+                  'sentence_feature': sentence_feature,
+                  'token_feature': token_feature,
+                  'logit_fig': output_linear,
+                  'logit_seg': seg_logit
                   }
 
         return result
