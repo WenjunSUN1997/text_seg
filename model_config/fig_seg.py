@@ -26,7 +26,7 @@ class FigSeg(torch.nn.Module):
         self.bert_model = bert_model
         self.token_encoder = TokenEncoder(sim_dim=sim_dim)
         if self.bbox_flag:
-            num_in_channel = 7
+            num_in_channel = 4
         else:
             num_in_channel = 3
 

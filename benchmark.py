@@ -72,7 +72,7 @@ def train(dataset_name,
                                     device=device,
                                     batch_size=batch_size,
                                     goal='val')
-    weight_cross = torch.tensor([weight_0, weight_1]).to(device)
+    weight_cross = torch.tensor([weight_0, weight_1]).to('cuda')
     loss_func_dict = {'cross': CrossEntroy(device=device,
                                            dataset_name=dataset_name,
                                            dataloader=dataloader_train,
@@ -193,8 +193,8 @@ def train(dataset_name,
         print('windiff: ', windiff)
         print('p: ', p)
         print('r: ', r)
-        print('r: ', f)
-        if pk >= best[0]:
+        print('f: ', f)
+        if pk <= best[0]:
             best[0] = pk
             best[1] = windiff
             best[2] = p
@@ -234,8 +234,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", default='bert-base-uncased')
     parser.add_argument("--sentence_bert_name",
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
-    parser.add_argument("--win_len", default=8)
-    parser.add_argument("--step_len", default=7)
+    parser.add_argument("--win_len", default=2)
+    parser.add_argument("--step_len", default=1)
     parser.add_argument("--max_token_num", default=300)
     parser.add_argument("--bbox_flag", default='0')
     parser.add_argument("--sentence_bert_flag", default='1')
@@ -249,10 +249,14 @@ if __name__ == "__main__":
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross',
                                                                       'focal'])
-    parser.add_argument("--seg_model_name", default='encoder_seg',
+    parser.add_argument("--seg_model_name", default='two_level',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg', 'fig_seg',
                                  'encoder_seg'])
+    '''double_bert 求bert和sentenceBert最大值SECTOR
+       two_level transformer平方 win:2 step:1
+       对于我们的模型 win:8 step:7
+    '''
     parser.add_argument("--semantic_dim", default=768)
     parser.add_argument("--feature_type", default='max', choices=['max', 'mean'])
     parser.add_argument("--token_encoder_flag", default='1')
