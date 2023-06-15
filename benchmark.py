@@ -1,6 +1,6 @@
 from model_components.dataloader import get_dataloader
 from baseline import bert_cos_sim, double_bert, cross_seg,\
-    llama_cos_sim, two_level_trans, sentence_bert
+    llama_cos_sim, two_level_trans, sentence_bert, sector
 from model_config.fig_seg import FigSeg
 from model_config.encoder_seg import EncoderSeg
 from transformers import BertModel, LlamaModel
@@ -105,6 +105,7 @@ def train(dataset_name,
                       'two_level': two_level_trans.TwoLevelTrans(sim_dim=semantic_dim),
                       'cross_seg': cross_seg.CrossSeg(bert_model=backbone_model,
                                                       sim_dim=semantic_dim),
+                      'sector': sector.Sector(sim_dim=semantic_dim),
                       'fig_seg': FigSeg(token_encoder_flag=token_encoder_flag,
                                         sentence_encoder_flag=sentence_encoder_flag,
                                         partial_encoder_flag=partial_encoder_flag,
@@ -234,8 +235,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", default='bert-base-uncased')
     parser.add_argument("--sentence_bert_name",
                         default='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens')
-    parser.add_argument("--win_len", default=2)
-    parser.add_argument("--step_len", default=1)
+    parser.add_argument("--win_len", default=8)
+    parser.add_argument("--step_len", default=7)
     parser.add_argument("--max_token_num", default=300)
     parser.add_argument("--bbox_flag", default='0')
     parser.add_argument("--sentence_bert_flag", default='1')
@@ -249,10 +250,10 @@ if __name__ == "__main__":
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross',
                                                                       'focal'])
-    parser.add_argument("--seg_model_name", default='cross_seg',
+    parser.add_argument("--seg_model_name", default='sector',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg', 'fig_seg',
-                                 'encoder_seg'])
+                                 'encoder_seg', 'sector'])
     '''double_bert 求bert和sentenceBert最大值SECTOR
        two_level transformer平方 win:2 step:1
        对于我们的模型 win:8 step:7
