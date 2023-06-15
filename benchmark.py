@@ -38,7 +38,7 @@ def train(dataset_name,
           sentence_encoder_flag,
           partial_encoder_flag,
           llama_flag):
-    best = [0, 0, 0, 0, 0]
+    best = [100, 0, 0, 0, 0]
     dataloader_train = get_dataloader(dataset_name=dataset_name,
                                       model_name=model_name,
                                       sentence_bert_name=sentence_bert_name,
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross',
                                                                       'focal'])
-    parser.add_argument("--seg_model_name", default='two_level',
+    parser.add_argument("--seg_model_name", default='cross_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg', 'fig_seg',
                                  'encoder_seg'])
@@ -258,7 +258,7 @@ if __name__ == "__main__":
        对于我们的模型 win:8 step:7
     '''
     parser.add_argument("--semantic_dim", default=768)
-    parser.add_argument("--feature_type", default='max', choices=['max', 'mean'])
+    parser.add_argument("--feature_type", default='mean', choices=['max', 'mean'])
     parser.add_argument("--token_encoder_flag", default='1')
     parser.add_argument("--sentence_encoder_flag", default='1')
     parser.add_argument("--partial_encoder_flag", default='1')
