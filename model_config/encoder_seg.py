@@ -20,7 +20,11 @@ class EncoderSeg(FigSeg):
 
     def forward(self, data):
         bert_feature = self.get_bert_feature(data)
-        sentence_bert_feature = data['sentence_bert_vec']
+        if self.llama_flag:
+            sentence_bert_feature = torch.mean(bert_feature, dim=2)
+        else:
+            sentence_bert_feature = data['sentence_bert_vec']
+
         if self.token_encoder_flag:
             token_feature = self.token_encoder(bert_feature)
         else:

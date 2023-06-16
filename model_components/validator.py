@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import nltk
 
-def validate(seg_model, dataloader, loss_func):
+def validate(seg_model, dataloader, loss_func, seg_model_name):
     print('val')
     loss_all = []
     prediction_all = []
@@ -18,7 +18,7 @@ def validate(seg_model, dataloader, loss_func):
         prediction_all += output['seg_result']
         label_all += data['label_seg'].view(-1).cpu().tolist()
         try:
-            if not isinstance(seg_model, FigSeg):
+            if seg_model_name != 'fig_seg':
                 prob = output['prob']
                 loss_value = loss_func(prob, data['label_seg'].view(-1))
                 loss_all.append(loss_value.item())

@@ -153,12 +153,11 @@ def train(dataset_name,
                                   'double_bert', 'sentence_bert']:
                 break
             else:
+                output = seg_model(data)
                 if seg_model_name != 'fig_seg':
-                    output = seg_model(data)
                     prob = output['prob']
                     loss_value = loss_func(prob, data['label_seg'].view(-1))
                 else:
-                    output = seg_model(data)
                     loss_value = loss_func(output, data)
 
                 loss_all.append(loss_value.item())
@@ -170,11 +169,13 @@ def train(dataset_name,
             if (step+1) % dev_step == 0:
                 dev_output = validate(seg_model=seg_model,
                                       dataloader=dataloader_dev,
-                                      loss_func=loss_func)
+                                      loss_func=loss_func,
+                                      seg_model_name=seg_model_name)
 
         val_output = validate(seg_model=seg_model,
                               dataloader=dataloader_val,
-                              loss_func=loss_func)
+                              loss_func=loss_func,
+                              seg_model_name=seg_model_name)
         try:
             scheduler.step(val_output['loss'])
         except:
@@ -250,7 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--cos_sim_threshold", default=0.5)
     parser.add_argument("--loss_func_name", default='cross', choices=['cross',
                                                                       'focal'])
-    parser.add_argument("--seg_model_name", default='sector',
+    parser.add_argument("--seg_model_name", default='encoder_seg',
                         choices=['bert_cos_sim', 'double_bert', 'llama_cos_sim',
                                  'sentence_bert', 'two_level', 'cross_seg', 'fig_seg',
                                  'encoder_seg', 'sector'])
@@ -263,11 +264,9 @@ if __name__ == "__main__":
     parser.add_argument("--token_encoder_flag", default='1')
     parser.add_argument("--sentence_encoder_flag", default='1')
     parser.add_argument("--partial_encoder_flag", default='1')
-    parser.add_argument("--llama_flag", default='0')
-
     args = parser.parse_args()
     print(args)
-    llama_flag = True if args.llama_flag == '1' else False
+    llama_flag = True if 'llama' in args.model_name else False
     token_encoder_flag = True if args.token_encoder_flag == '1' else False
     sentence_encoder_flag = True if args.sentence_encoder_flag == '1' else False
     partial_encoder_flag = True if args.partial_encoder_flag == '1' else False
