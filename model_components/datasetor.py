@@ -8,6 +8,8 @@ import torch
 class Datasetor(Dataset):
     def __init__(self, csv,
                  model_name,
+                 dataset_name,
+                 goal,
                  sentence_bert_name,
                  win_len,
                  step_len,
@@ -17,9 +19,11 @@ class Datasetor(Dataset):
                  device):
         self.csv = csv
         self.device = device
+        self.goal = goal
         self.bbox_flag = bbox_flag
         self.sentence_bert_flag = sentence_bert_flag
         self.max_token_num = max_token_num
+        self.dataset_name = dataset_name
         self.sentence_bert = SentenceTransformer(sentence_bert_name)
         if 'llama' in model_name:
             self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
@@ -58,7 +62,11 @@ class Datasetor(Dataset):
         return result_sentence, result_label_group, result_bbox
 
     def __len__(self):
-        return len(self.sentence)
+        if 'diseases' in self.dataset_name and self.goal == 'train':
+            return int(len(self.sentence) / 1)
+        else:
+            return len(self.sentence)
+
 
     def get_tokens(self, sentence_list):
         tokens = self.tokenizer(sentence_list,
@@ -146,14 +154,14 @@ class Datasetor(Dataset):
         return result
 
 if __name__ == "__main__":
-    csv = pd.read_csv('../data/train_fr.csv')
+    csv = pd.read_csv('../data/train_wikidiseases.csv')
     obj = Datasetor(csv=csv,
                     model_name='camembert-base',
                     sentence_bert_name='sentence-transformers/xlm-r-100langs-bert-base-nli-mean-tokens',
                     win_len=2,
                     step_len=2,
                     max_token_num=512,
-                    bbox_flag=True,
+                    bbox_flag=False,
                     sentence_bert_flag=True,
                     device='cuda:0')
     print(obj[4])

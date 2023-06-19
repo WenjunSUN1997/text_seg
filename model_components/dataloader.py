@@ -36,6 +36,8 @@ def get_dataloader(dataset_name,
     csv = pd.read_csv(dataset_name_dict[dataset_name][goal])
     dataset = Datasetor(csv,
                         model_name,
+                        dataset_name,
+                        goal,
                         sentence_bert_name,
                         win_len,
                         step_len,

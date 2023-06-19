@@ -28,11 +28,12 @@ class XmlProcessor():
             text = node.getElementsByTagName('TextEquiv')[-1].getElementsByTagName('Unicode')[0].childNodes[0].data
             text = text.replace('\n', '')
             text = text.replace('¬', '')
-            if len(text.split(' '))<3:
+            if len(text.split(' ')) < 3:
                 continue
 
-            annotations.append({'reading_order':reading_order,
-                                'bbox':bbox,
-                                'text':text,
-                                'img_path':self.img_file_path})
+            annotations.append({'reading_order': reading_order,
+                                'bbox': bbox,
+                                'text': text,
+                                'img_path': self.img_file_path})
         return annotations
+

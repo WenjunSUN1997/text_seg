@@ -2,10 +2,11 @@ import torch
 
 class CrossSeg(torch.nn.Module):
 
-    def __init__(self, bert_model, sim_dim):
+    def __init__(self, bert_model, sim_dim, feature_type):
         super(CrossSeg, self).__init__()
         self.bert_model = bert_model
         self.sim_dim = sim_dim
+        self.feature_type = feature_type
         self.encoder_layer = torch.nn.TransformerEncoderLayer(d_model=sim_dim,
                                                               nhead=8,
                                                               batch_first=True)
@@ -18,7 +19,10 @@ class CrossSeg(torch.nn.Module):
                                        attention_mask=attention_mask)['last_hidden_state']
         bert_feature = bert_feature.view(-1, self.sim_dim)
         output_encoder = self.encoder(bert_feature)
-        input_linear, _ = torch.max(output_encoder, dim=0)
+        if self.feature_type == 'max':
+            input_linear, _ = torch.max(output_encoder, dim=0)
+        else:
+            input_linear = torch.mean(output_encoder, dim=0)
         prob_log = self.linear(input_linear)
         prob = torch.softmax(prob_log, dim=-1)
         label = torch.argmax(prob)
