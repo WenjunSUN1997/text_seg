@@ -7,6 +7,8 @@ python -u benchmark.py
 
 --bbox_flag 0 
 
+--semantic_dim 4096
+
 --seg_model_name encoder_seg 
 
 --device cuda:0 (you can change) 
