@@ -38,7 +38,6 @@ def train(dataset_name,
           sentence_encoder_flag,
           partial_encoder_flag,
           llama_flag):
-    best = [100, 0, 0, 0, 0]
     dataloader_train = get_dataloader(dataset_name=dataset_name,
                                       model_name=model_name,
                                       sentence_bert_name=sentence_bert_name,
@@ -197,18 +196,6 @@ def train(dataset_name,
         print('p: ', p)
         print('r: ', r)
         print('f: ', f)
-        if pk <= best[0]:
-            best[0] = pk
-            best[1] = windiff
-            best[2] = p
-            best[3] = r
-            best[4] = f
-        print('best')
-        print('pk: ', best[0])
-        print('windiff: ', best[1])
-        print('p: ', best[2])
-        print('r: ', best[3])
-        print('f: ', best[4])
         save_folder_path = 'log/' + seg_model_name + '/' + dataset_name
         save_folder_flag = os.path.exists(save_folder_path)
         if not save_folder_flag:
@@ -222,12 +209,7 @@ def train(dataset_name,
                        + 'windiff: ' + str(windiff) + '\n'
                        + 'p: ' + str(p) + '\n'
                        + 'r: ' + str(r) + '\n'
-                       + 'f: ' + str(f) + '\n'
-                       + 'best_pk: ' + str(best[0]) + '\n'
-                       + 'best_windiff: ' + str(best[1]) + '\n'
-                       + 'best_p: ' + str(best[2]) + '\n'
-                       + 'best_r: ' + str(best[3]) + '\n'
-                       + 'best_f: ' + str(best[4]) + '\n')
+                       + 'f: ' + str(f) + '\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
